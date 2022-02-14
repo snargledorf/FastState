@@ -11,5 +11,8 @@ namespace FastState
 
         public static InvocationExpression BuildEqualityCheckExpression<T>(Expression left, Expression right, Expression<Func<T, T, bool>> equalityCheck)
             => Expression.Invoke(equalityCheck, left, right);
+
+        public static Expression CreateNewComparisonWrapperExpression<T>(Expression exp) 
+            => Expression.New(typeof(ComparisonWrapper<T>).GetConstructor(new[] { typeof(T) }), exp);
     }
 }

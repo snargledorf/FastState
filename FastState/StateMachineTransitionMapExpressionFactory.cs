@@ -15,25 +15,31 @@ namespace FastState
 
             LabelTarget returnTarget = Expression.Label(typeof(bool));
 
+            bool isTuple = TupleHelpers.IsTuple(stateParam.Type);
+
             var currentStateDecisionExpressions = new List<Expression>();
 
-            var switchCaseExpressions = map
-                .Select(tm => {
-                    ConstantExpression constantExpression = TupleHelpers.IsTuple<TState>()
-                        ? Expression.Constant(new ComparisonWrapper<TState>(tm.State))
-                        : Expression.Constant(tm.State);
+            if (map.Any())
+            {
+                var switchCaseExpressions = map
+                    .Select(tm =>
+                    {
+                        ConstantExpression constantExpression = isTuple
+                            ? Expression.Constant(new ComparisonWrapper<TState>(tm.State))
+                            : Expression.Constant(tm.State);
 
-                    return Expression.SwitchCase(
-                        StateTransitionMapExpressionFactory<TState, TInput>.BuildTryGetValueExpression(tm, inputParam, outNewStateParam, returnTarget),
-                        constantExpression);
-                })
-                .ToArray();
+                        return Expression.SwitchCase(
+                            StateTransitionMapExpressionFactory<TState, TInput>.BuildTryGetValueExpression(tm, inputParam, outNewStateParam, returnTarget),
+                            constantExpression);
+                    })
+                    .ToArray();
 
-            Expression switchValue = stateParam;
-            if (TupleHelpers.IsTuple<TState>())
-                switchValue = Expression.New(typeof(ComparisonWrapper<TState>).GetConstructor(new[] { typeof(TState) }), stateParam);
+                Expression switchValue = isTuple
+                    ? ExpressionHelpers.CreateNewComparisonWrapperExpression<TState>(stateParam)
+                    : stateParam;
 
-            currentStateDecisionExpressions.Add(Expression.Switch(switchValue, switchCaseExpressions));
+                currentStateDecisionExpressions.Add(Expression.Switch(switchValue, switchCaseExpressions));
+            }
 
             currentStateDecisionExpressions.Add(Expression.Throw(Expression.Constant(new ArgumentException("Invalid state"))));
             currentStateDecisionExpressions.Add(Expression.Label(returnTarget, Expression.Constant(false)));

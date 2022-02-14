@@ -30,13 +30,7 @@ namespace FastState
 
         public IStateTransitionMapBuilder<TState, TInput> When(TInput input, TState newState)
         {
-            ConstantExpression constantExpression;
-            if (TupleHelpers.IsTuple<TInput>())
-                constantExpression = Expression.Constant(new ComparisonWrapper<TInput>(input));
-            else
-                constantExpression = Expression.Constant(input);
-
-            transitions.Add(new Transition<TState, TInput>(constantExpression, newState));
+            transitions.Add(new Transition<TState, TInput>(Expression.Constant(input), newState));
             return this;
         }
 

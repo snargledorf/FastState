@@ -35,44 +35,35 @@ namespace FastState
 
         private static IEnumerable<Expression> BuildConstantChecks(IStateTransitionMap<TState, TInput> map, ParameterExpression inputParam, ParameterExpression outNewStateParam, LabelTarget returnTarget)
         {
-            var constants = map
-                .Where(t => t.Condition.NodeType == ExpressionType.Constant)
-                .Select(t => {
-                    var condition = t.Condition;;
-
-                    return Expression.SwitchCase(
-                        Expression.Block(
-                            Expression.Assign(outNewStateParam, Expression.Constant(t.NewState)),
-                            Expression.Return(returnTarget, Expression.Constant(true))
-                        ),
-                        condition
-                    );
-                }).ToArray();
-
-            if (constants.Length > 0)
+            var constants = map.Where(t => t.Condition.NodeType == ExpressionType.Constant);
+            if (constants.Any())
             {
-                Expression input = inputParam;
-                if (TupleHelpers.IsTuple(input.Type))
-                    input = Expression.New(typeof(ComparisonWrapper<TInput>).GetConstructor(new[] { typeof(TInput) }), inputParam);
-                yield return Expression.Switch(input, constants);
+                bool inputIsTuple = TupleHelpers.IsTuple(inputParam.Type);
+
+                SwitchCase[] switchCases = constants.Select(t => {
+                     var condition = t.Condition;
+
+                     if (inputIsTuple)
+                     {
+                         ConstantExpression constantExpression = (ConstantExpression)condition;
+                         condition = Expression.Constant(new ComparisonWrapper<TInput>((TInput)constantExpression.Value));
+                     }
+
+                     return Expression.SwitchCase(
+                         Expression.Block(
+                             Expression.Assign(outNewStateParam, Expression.Constant(t.NewState)),
+                             Expression.Return(returnTarget, Expression.Constant(true))
+                         ),
+                         condition
+                     );
+                 }).ToArray();
+
+                Expression input = inputIsTuple
+                    ? ExpressionHelpers.CreateNewComparisonWrapperExpression<TInput>(inputParam)
+                    : inputParam;
+
+                yield return Expression.Switch(input, switchCases);
             }
-            /*
-// Check tuple constants
-var constantTupleConditions = constants.Where(t => TupleHelpers.IsTuple(t.Condition.Type))
-   .Select(t =>
-       Expression.IfThen(
-           TupleHelpers.BuildTupleCheckExpression<TInput>(inputParam, t.Condition, (input, tupleConstant) => EqualityComparer<TInput>.Default.Equals(input, tupleConstant)),
-           Expression.Block(
-               Expression.Assign(outNewStateParam, Expression.Constant(t.NewState)),
-               Expression.Return(returnTarget, Expression.Constant(true))
-           )
-       )
-   );
-
-foreach (Expression expression in constantTupleConditions)
-   yield return expression;*/
-
-
         }
 
         internal static BlockExpression BuildGetDefaultExpression(IStateTransitionMap<TState, TInput> map, ParameterExpression outNewStateParam, LabelTarget returnTarget)
