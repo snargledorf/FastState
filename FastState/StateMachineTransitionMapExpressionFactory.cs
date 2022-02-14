@@ -17,29 +17,23 @@ namespace FastState
 
             var currentStateDecisionExpressions = new List<Expression>();
 
-            if (TupleHelpers.IsTuple<TState>())
-            {
-                currentStateDecisionExpressions.AddRange(
-                        map.Select(tm =>
-                            Expression.IfThen(
-                                ExpressionHelpers.BuildEqualityCheckExpression<TState>(stateParam, Expression.Constant(tm.State, typeof(TState)), (input, tupleConstant)
-                                    => EqualityComparer<TState>.Default.Equals(input, tupleConstant)),
-                                StateTransitionMapExpressionFactory<TState, TInput>.BuildTryGetValueExpression(tm, inputParam, outNewStateParam, returnTarget)
-                            )
-                        )
-                    );
-            }
-            else
-            {
-                var switchCaseExpressions = map
-                    .Select(tm =>
-                        Expression.SwitchCase(
-                            StateTransitionMapExpressionFactory<TState, TInput>.BuildTryGetValueExpression(tm, inputParam, outNewStateParam, returnTarget),
-                            Expression.Constant(tm.State)))
-                    .ToArray();
+            var switchCaseExpressions = map
+                .Select(tm => {
+                    ConstantExpression constantExpression = TupleHelpers.IsTuple<TState>()
+                        ? Expression.Constant(new ComparisonWrapper<TState>(tm.State))
+                        : Expression.Constant(tm.State);
 
-                currentStateDecisionExpressions.Add(Expression.Switch(stateParam, switchCaseExpressions));
-            }
+                    return Expression.SwitchCase(
+                        StateTransitionMapExpressionFactory<TState, TInput>.BuildTryGetValueExpression(tm, inputParam, outNewStateParam, returnTarget),
+                        constantExpression);
+                })
+                .ToArray();
+
+            Expression switchValue = stateParam;
+            if (TupleHelpers.IsTuple<TState>())
+                switchValue = Expression.New(typeof(ComparisonWrapper<TState>).GetConstructor(new[] { typeof(TState) }), stateParam);
+
+            currentStateDecisionExpressions.Add(Expression.Switch(switchValue, switchCaseExpressions));
 
             currentStateDecisionExpressions.Add(Expression.Throw(Expression.Constant(new ArgumentException("Invalid state"))));
             currentStateDecisionExpressions.Add(Expression.Label(returnTarget, Expression.Constant(false)));
