@@ -36,33 +36,39 @@ namespace FastState
         private static IEnumerable<Expression> BuildConstantChecks(IStateTransitionMap<TState, TInput> map, ParameterExpression inputParam, ParameterExpression outNewStateParam, LabelTarget returnTarget)
         {
             var constants = map.Where(t => t.Condition.NodeType == ExpressionType.Constant);
-            if (constants.Any())
+            if (!constants.Any())
+                yield break;
+
+            bool inputIsTuple = TupleHelpers.IsTuple(inputParam.Type);
+
+            if (inputIsTuple)
             {
-                bool inputIsTuple = TupleHelpers.IsTuple(inputParam.Type);
+                IEnumerable<Expression> ifStatements = constants.Select(t =>
+                    Expression.IfThen(
+                        ExpressionHelpers.BuildEqualityCheckExpression<TInput>(inputParam, t.Condition),
+                        Expression.Block(
+                           Expression.Assign(outNewStateParam, Expression.Constant(t.NewState)),
+                           Expression.Return(returnTarget, Expression.Constant(true))
+                        )
+                    )
+                );
 
-                SwitchCase[] switchCases = constants.Select(t => {
-                     var condition = t.Condition;
+                foreach (var exp in ifStatements)
+                    yield return exp;
+            }
+            else
+            {
+                SwitchCase[] switchCases = constants.Select(t =>
+                    Expression.SwitchCase(
+                        Expression.Block(
+                            Expression.Assign(outNewStateParam, Expression.Constant(t.NewState)),
+                            Expression.Return(returnTarget, Expression.Constant(true))
+                        ),
+                        t.Condition
+                    )
+                ).ToArray();
 
-                     if (inputIsTuple)
-                     {
-                         ConstantExpression constantExpression = (ConstantExpression)condition;
-                         condition = Expression.Constant(new ComparisonWrapper<TInput>((TInput)constantExpression.Value));
-                     }
-
-                     return Expression.SwitchCase(
-                         Expression.Block(
-                             Expression.Assign(outNewStateParam, Expression.Constant(t.NewState)),
-                             Expression.Return(returnTarget, Expression.Constant(true))
-                         ),
-                         condition
-                     );
-                 }).ToArray();
-
-                Expression input = inputIsTuple
-                    ? ExpressionHelpers.CreateNewComparisonWrapperExpression<TInput>(inputParam)
-                    : inputParam;
-
-                yield return Expression.Switch(input, switchCases);
+                yield return Expression.Switch(inputParam, switchCases);
             }
         }
 

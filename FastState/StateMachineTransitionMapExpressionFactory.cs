@@ -15,36 +15,42 @@ namespace FastState
 
             LabelTarget returnTarget = Expression.Label(typeof(bool));
 
-            bool isTuple = TupleHelpers.IsTuple(stateParam.Type);
+            bool stateIsTuple = TupleHelpers.IsTuple(stateParam.Type);
 
-            var currentStateDecisionExpressions = new List<Expression>();
+            var currentStateFlowControlExpressions = new List<Expression>();
 
             if (map.Any())
             {
-                var switchCaseExpressions = map
-                    .Select(tm =>
-                    {
-                        ConstantExpression constantExpression = isTuple
-                            ? Expression.Constant(new ComparisonWrapper<TState>(tm.State))
-                            : Expression.Constant(tm.State);
+                if (stateIsTuple)
+                {
+                    IEnumerable<Expression> ifStatements = map.Select(tm =>
+                        Expression.IfThen(
+                            ExpressionHelpers.BuildEqualityCheckExpression<TState>(stateParam, Expression.Constant(tm.State)),
+                            StateTransitionMapExpressionFactory<TState, TInput>.BuildTryGetValueExpression(tm, inputParam, outNewStateParam, returnTarget)
+                        )
+                    );
 
-                        return Expression.SwitchCase(
-                            StateTransitionMapExpressionFactory<TState, TInput>.BuildTryGetValueExpression(tm, inputParam, outNewStateParam, returnTarget),
-                            constantExpression);
-                    })
-                    .ToArray();
+                    currentStateFlowControlExpressions.AddRange(ifStatements);
+                }
+                else
+                {
+                    var switchCaseExpressions = map
+                        .Select(tm =>
+                            Expression.SwitchCase(
+                                StateTransitionMapExpressionFactory<TState, TInput>.BuildTryGetValueExpression(tm, inputParam, outNewStateParam, returnTarget),
+                                Expression.Constant(tm.State)
+                            )
+                        )
+                        .ToArray();
 
-                Expression switchValue = isTuple
-                    ? ExpressionHelpers.CreateNewComparisonWrapperExpression<TState>(stateParam)
-                    : stateParam;
-
-                currentStateDecisionExpressions.Add(Expression.Switch(switchValue, switchCaseExpressions));
+                    currentStateFlowControlExpressions.Add(Expression.Switch(stateParam, switchCaseExpressions));
+                }
             }
 
-            currentStateDecisionExpressions.Add(Expression.Throw(Expression.Constant(new ArgumentException("Invalid state"))));
-            currentStateDecisionExpressions.Add(Expression.Label(returnTarget, Expression.Constant(false)));
+            currentStateFlowControlExpressions.Add(Expression.Throw(Expression.Constant(new ArgumentException("Invalid state"))));
+            currentStateFlowControlExpressions.Add(Expression.Label(returnTarget, Expression.Constant(false)));
             
-            BlockExpression body = Expression.Block(typeof(bool), currentStateDecisionExpressions);
+            BlockExpression body = Expression.Block(typeof(bool), currentStateFlowControlExpressions);
 
             return Expression.Lambda<TryTransitionDelegate<TState, TInput>>(body, stateParam, inputParam, outNewStateParam);
         }
@@ -62,8 +68,7 @@ namespace FastState
                 currentStateDecisionExpressions.AddRange(
                     map.Select(tm =>
                         Expression.IfThen(
-                            ExpressionHelpers.BuildEqualityCheckExpression<TState>(stateParam, Expression.Constant(tm.State, typeof(TState)), (input, tupleConstant)
-                                => EqualityComparer<TState>.Default.Equals(input, tupleConstant)),
+                            ExpressionHelpers.BuildEqualityCheckExpression<TState>(stateParam, Expression.Constant(tm.State)),
                             StateTransitionMapExpressionFactory<TState, TInput>.BuildGetDefaultExpression(tm, outNewStateParam, returnTarget)
                         )
                     )
