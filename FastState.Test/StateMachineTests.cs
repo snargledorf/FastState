@@ -71,7 +71,9 @@ namespace FastState.Test
                     .When(input => input == "Input2", "State3")
 
                     .When(input => input == "Input3", "State2")
-                    .When("Input3", "State3");
+                    .When("Input3", "State3")
+
+                    .Default("State4");
             });
 
             Assert.IsTrue(sm.TryTransition("State1", "Input1", out string newState));
