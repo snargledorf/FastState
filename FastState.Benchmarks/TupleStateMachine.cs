@@ -5,7 +5,7 @@ using FastState;
 
 public class TupleStateMachine
 {
-    readonly StateMachine<(string, string), (string, string)> tupleStateMachine = new(builder =>
+    readonly StateMachine<(string, string), (string, string)> Machine = new(builder =>
     {
         builder.From(("State1", "State1"))
 
@@ -24,37 +24,37 @@ public class TupleStateMachine
     });
 
     [Benchmark]
-    public (string, string) TryTransitionTupleStateHitConstant()
+    public (string, string) TryTransitionHitConstant()
     {
-        tupleStateMachine.TryTransition(("State1", "State1"), ("Input3", "Input3"), out (string, string) newState);
+        Machine.TryTransition(("State1", "State1"), ("Input3", "Input3"), out (string, string) newState);
         return newState;
     }
 
     [Benchmark]
-    public (string, string) TryTransitionTupleStateHitExpression()
+    public (string, string) TryTransitionHitExpression()
     {
-        tupleStateMachine.TryTransition(("State1", "State1"), ("Input1", "Input1"), out (string, string) newState);
+        Machine.TryTransition(("State1", "State1"), ("Input1", "Input1"), out (string, string) newState);
         return newState;
     }
 
     [Benchmark]
-    public (string, string) TryTransitionTupleStateDefault()
+    public (string, string) TryTransitionDefault()
     {
-        tupleStateMachine.TryTransition(("State1", "State1"), ("Input4", "Input4"), out (string, string) newState);
+        Machine.TryTransition(("State1", "State1"), ("Input4", "Input4"), out (string, string) newState);
         return newState;
     }
 
     [Benchmark]
-    public (string, string) TryGetDefaultForStateTupleStateHit()
+    public (string, string) TryGetDefaultForStateHit()
     {
-        tupleStateMachine.TryGetDefaultForState(("State1", "State1"), out (string, string) newState);
+        Machine.TryGetDefaultForState(("State1", "State1"), out (string, string) newState);
         return newState;
     }
 
     [Benchmark]
-    public (string, string) TryGetDefaultForStateTupleStateMiss()
+    public (string, string) TryGetDefaultForStateMiss()
     {
-        tupleStateMachine.TryGetDefaultForState(("State2", "State2"), out (string, string) newState);
+        Machine.TryGetDefaultForState(("State2", "State2"), out (string, string) newState);
         return newState;
     }
 }

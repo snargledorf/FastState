@@ -5,7 +5,7 @@ using FastState;
 
 public class IntegerStateMachine
 {
-    readonly StateMachine<int, int> stringStateMachine = new(builder =>
+    readonly StateMachine<int, int> Machine = new(builder =>
     {
         builder.From(1)
 
@@ -24,37 +24,37 @@ public class IntegerStateMachine
     });
 
     [Benchmark]
-    public int TryTransitionStringStateHitConstant()
+    public int TryTransitionHitConstant()
     {
-        stringStateMachine.TryTransition(1, 3, out int newState);
+        Machine.TryTransition(1, 3, out int newState);
         return newState;
     }
 
     [Benchmark]
-    public int TryTransitionStringStateHitExpression()
+    public int TryTransitionHitExpression()
     {
-        stringStateMachine.TryTransition(1, 1, out int newState);
+        Machine.TryTransition(1, 1, out int newState);
         return newState;
     }
 
     [Benchmark]
-    public int TryTransitionStringStateDefault()
+    public int TryTransitionDefault()
     {
-        stringStateMachine.TryTransition(1, 4, out int newState);
+        Machine.TryTransition(1, 4, out int newState);
         return newState;
     }
 
     [Benchmark]
-    public int TryGetDefaultForStateStringStateHit()
+    public int TryGetDefaultForStateHit()
     {
-        stringStateMachine.TryGetDefaultForState(1, out int newState);
+        Machine.TryGetDefaultForState(1, out int newState);
         return newState;
     }
 
     [Benchmark]
-    public int TryGetDefaultForStateStringStateMiss()
+    public int TryGetDefaultForStateMiss()
     {
-        stringStateMachine.TryGetDefaultForState(2, out int newState);
+        Machine.TryGetDefaultForState(2, out int newState);
         return newState;
     }
 }
