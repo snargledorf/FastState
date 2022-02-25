@@ -1,5 +1,7 @@
-﻿
-using BenchmarkDotNet.Running;
+﻿using BenchmarkDotNet.Running;
+using FastState.Benchmarks;
 
-var summary = BenchmarkRunner.Run(typeof(Program).Assembly);
-Console.WriteLine(summary);
+BenchmarkRunner.Run<ExperimentalBenchmarks>();
+
+//var summary = BenchmarkRunner.Run(typeof(Program).Assembly);
+//Console.WriteLine(summary);
