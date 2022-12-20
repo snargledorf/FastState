@@ -3,6 +3,7 @@ using BenchmarkDotNet.Attributes;
 
 namespace FastState.Benchmarks
 {
+    [MemoryDiagnoser]
     public abstract class BenchmarkBase<T>
     {
         const int numberOfStatesAndInputs = 5;
@@ -48,9 +49,10 @@ namespace FastState.Benchmarks
         }
 
         [Benchmark]
-        public T TryTransitionHitConstant()
+        public T? TryTransitionHitConstant()
         {
-            T newState = default;
+            T? newState = default;
+
             foreach (var state in stateInts)
             {
                 foreach (var inputInt in Enumerable.Range(state, numberOfStatesAndInputs))
@@ -61,13 +63,15 @@ namespace FastState.Benchmarks
                         throw new Exception();
                 }
             }
+
             return newState;
         }
 
         [Benchmark]
-        public T TryTransitionHitExpression()
+        public T? TryTransitionHitExpression()
         {
-            T newState = default;
+            T? newState = default;
+
             foreach (var state in stateInts)
             {
                 foreach (var inputInt in Enumerable.Range(state + delStateOffset, numberOfStatesAndInputs))
@@ -78,37 +82,42 @@ namespace FastState.Benchmarks
                         throw new Exception();
                 }
             }
+
             return newState;
         }
 
         [Benchmark]
-        public T TryTransitionDefault()
+        public T? TryTransitionDefault()
         {
-            T newState = default;
+            T? newState = default;
+
             foreach (var state in stateInts)
             {
                 if (Machine.TryTransition(intToT(state), default, out newState)
                     && !EqualityComparer<T>.Default.Equals(newState, intToT(state + 1)))
                     throw new Exception();
             }
+
             return newState;
         }
 
         [Benchmark]
-        public T TryGetDefaultForStateHit()
+        public T? TryGetDefaultForStateHit()
         {
-            T newState = default;
+            T? newState = default;
+
             foreach (var state in stateInts)
             {
                 if (Machine.TryGetDefaultForState(intToT(state), out newState)
                     && !EqualityComparer<T>.Default.Equals(newState, intToT(state + 1)))
                     throw new Exception();
             }
+
             return newState;
         }
 
         [Benchmark]
-        public T TryGetDefaultForStateMiss()
+        public T? TryGetDefaultForStateMiss()
         {
             Machine.TryGetDefaultForState(intToT(delStateOffset), out T newState);
             return newState;
