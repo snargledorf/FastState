@@ -3,48 +3,51 @@ using BenchmarkDotNet.Attributes;
 
 namespace FastState.Benchmarks
 {
-    [MemoryDiagnoser]
-    public abstract class BenchmarkBase<T>
+    public abstract class BenchmarkBase
     {
-        const int numberOfStatesAndInputs = 5;
-        const int delStateOffset = 50;
+        protected const int NumberOfStatesAndInputs = 5;
+        protected const int DelStateOffset = 50;
 
-        protected static readonly IEnumerable<int> stateInts = Enumerable.Range(1, numberOfStatesAndInputs);
-        
-        private readonly Func<int, T> intToT;
-        
-        protected StateMachine<T, T> Machine = null!;
+        protected static readonly IEnumerable<int> StateInts = Enumerable.Range(1, NumberOfStatesAndInputs);
+    }
+    
+    [MemoryDiagnoser]
+    public abstract class BenchmarkBase<T> : BenchmarkBase
+    {
+        private readonly Func<int, T?> _intToT;
+
+        private StateMachine<T?, T?> _machine = null!;
 
         protected BenchmarkBase(Func<int, T> intToT)
         {
-            this.intToT = intToT;
+            _intToT = intToT;
         }
 
         [GlobalSetup]
         public void Setup()
         {
-            Machine = new(builder =>
+            _machine = new StateMachine<T?, T?>(builder =>
             {
-                foreach (var state in BenchmarkBase<T>.stateInts)
+                foreach (int state in StateInts)
                 {
-                    IStateTransitionMapBuilder<T, T> stateBuilder = builder.From(intToT(state));
+                    IStateTransitionMapBuilder<T?, T?> stateBuilder = builder.From(_intToT(state));
 
-                    foreach (var constInput in Enumerable.Range(state, BenchmarkBase<T>.numberOfStatesAndInputs))
+                    foreach (int constInput in Enumerable.Range(state, NumberOfStatesAndInputs))
                     {
-                        T? input = intToT(constInput);
+                        T? input = _intToT(constInput);
                         stateBuilder.When(input, input);
                     }
 
-                    foreach (var delInput in Enumerable.Range(state + BenchmarkBase<T>.delStateOffset, BenchmarkBase<T>.numberOfStatesAndInputs))
+                    foreach (int delInput in Enumerable.Range(state + DelStateOffset, NumberOfStatesAndInputs))
                     {
-                        T input = intToT(delInput);
+                        T? input = _intToT(delInput);
                         stateBuilder.When(i => EqualityComparer<T>.Default.Equals(i, input), input);
                     }
 
-                    stateBuilder.Default(intToT(state + 1));
+                    stateBuilder.Default(_intToT(state + 1));
                 }
 
-                builder.From(intToT(delStateOffset));
+                builder.From(_intToT(DelStateOffset));
             });
         }
 
@@ -53,12 +56,12 @@ namespace FastState.Benchmarks
         {
             T? newState = default;
 
-            foreach (var state in stateInts)
+            foreach (int state in StateInts)
             {
-                foreach (var inputInt in Enumerable.Range(state, numberOfStatesAndInputs))
+                foreach (int inputInt in Enumerable.Range(state, NumberOfStatesAndInputs))
                 {
-                    T input = intToT(inputInt);
-                    if (Machine.TryTransition(intToT(state), input, out newState) 
+                    T? input = _intToT(inputInt);
+                    if (_machine.TryTransition(_intToT(state), input, out newState) 
                         && !EqualityComparer<T>.Default.Equals(newState, input))
                         throw new Exception();
                 }
@@ -72,12 +75,12 @@ namespace FastState.Benchmarks
         {
             T? newState = default;
 
-            foreach (var state in stateInts)
+            foreach (int state in StateInts)
             {
-                foreach (var inputInt in Enumerable.Range(state + delStateOffset, numberOfStatesAndInputs))
+                foreach (int inputInt in Enumerable.Range(state + DelStateOffset, NumberOfStatesAndInputs))
                 {
-                    T input = intToT(inputInt);
-                    if (Machine.TryTransition(intToT(state), input, out newState)
+                    T? input = _intToT(inputInt);
+                    if (_machine.TryTransition(_intToT(state), input, out newState)
                         && !EqualityComparer<T>.Default.Equals(newState, input))
                         throw new Exception();
                 }
@@ -91,10 +94,10 @@ namespace FastState.Benchmarks
         {
             T? newState = default;
 
-            foreach (var state in stateInts)
+            foreach (int state in StateInts)
             {
-                if (Machine.TryTransition(intToT(state), default, out newState)
-                    && !EqualityComparer<T>.Default.Equals(newState, intToT(state + 1)))
+                if (_machine.TryTransition(_intToT(state), default, out newState)
+                    && !EqualityComparer<T>.Default.Equals(newState, _intToT(state + 1)))
                     throw new Exception();
             }
 
@@ -106,10 +109,10 @@ namespace FastState.Benchmarks
         {
             T? newState = default;
 
-            foreach (var state in stateInts)
+            foreach (int state in StateInts)
             {
-                if (Machine.TryGetDefaultForState(intToT(state), out newState)
-                    && !EqualityComparer<T>.Default.Equals(newState, intToT(state + 1)))
+                if (_machine.TryGetDefaultForState(_intToT(state), out newState)
+                    && !EqualityComparer<T>.Default.Equals(newState, _intToT(state + 1)))
                     throw new Exception();
             }
 
@@ -119,7 +122,7 @@ namespace FastState.Benchmarks
         [Benchmark]
         public T? TryGetDefaultForStateMiss()
         {
-            Machine.TryGetDefaultForState(intToT(delStateOffset), out T newState);
+            _machine.TryGetDefaultForState(_intToT(DelStateOffset), out T? newState);
             return newState;
         }
     }
