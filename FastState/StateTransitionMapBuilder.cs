@@ -6,7 +6,7 @@ namespace FastState
 {
     internal class StateTransitionMapBuilder<TState, TInput> : IStateTransitionMapBuilder<TState, TInput>
     {
-        internal readonly List<Transition<TState, TInput>> transitions = new List<Transition<TState, TInput>>();
+        private readonly List<Transition<TState, TInput>> _transitions = new List<Transition<TState, TInput>>();
 
         public StateTransitionMapBuilder(TState state, IStateMachineTransitionMapBuilder<TState, TInput> stateMachineTransitionMapBuilder)
         {
@@ -24,13 +24,13 @@ namespace FastState
 
         public IStateTransitionMapBuilder<TState, TInput> When(Expression<Func<TInput, bool>> condition, TState newState)
         {
-            transitions.Add(new Transition<TState, TInput>(condition, newState));
+            _transitions.Add(new Transition<TState, TInput>(condition, newState));
             return this;
         }
 
         public IStateTransitionMapBuilder<TState, TInput> When(TInput input, TState newState)
         {
-            transitions.Add(new Transition<TState, TInput>(Expression.Constant(input), newState));
+            _transitions.Add(new Transition<TState, TInput>(Expression.Constant(input), newState));
             return this;
         }
 
@@ -50,7 +50,7 @@ namespace FastState
 
         public StateTransitionMap<TState, TInput> Build()
         {
-            return new StateTransitionMap<TState, TInput>(State, transitions, DefaultTransitionState);
+            return new StateTransitionMap<TState, TInput>(State, _transitions, DefaultTransitionState);
         }
     }
 }

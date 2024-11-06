@@ -5,16 +5,16 @@ namespace FastState
 {
     internal class StateMachineTransitionMap<TState, TInput> : IStateMachineTransitionMap<TState, TInput>
     {
-        private readonly IEnumerable<IStateTransitionMap<TState, TInput>> transitionMaps;
+        private readonly IReadOnlyCollection<IStateTransitionMap<TState, TInput>> _transitionMaps;
 
-        public StateMachineTransitionMap(IEnumerable<IStateTransitionMap<TState, TInput>> enumerable)
+        public StateMachineTransitionMap(IReadOnlyCollection<IStateTransitionMap<TState, TInput>> transitionMaps)
         {
-            transitionMaps = enumerable;
+            _transitionMaps = transitionMaps;
         }
 
         public IEnumerator<IStateTransitionMap<TState, TInput>> GetEnumerator()
         {
-            return transitionMaps.GetEnumerator();
+            return _transitionMaps.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()

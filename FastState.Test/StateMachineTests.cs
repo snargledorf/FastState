@@ -364,5 +364,45 @@ namespace FastState.Test
             var sm = new StateMachine<string, string>(_ => { });
             sm.TryTransition(string.Empty, string.Empty, out _);
         }
+
+        [TestMethod]
+        public void StateHasInputTransitions()
+        {
+            var sm = new StateMachine<string, string>(builder =>
+            {
+                builder.From("State1")
+                    .Default("State3");
+
+                builder.From("State2");
+
+                builder.From("State3")
+                    .When("Input2", "State2")
+                    .Default("State1");
+            });
+
+            Assert.IsFalse(sm.StateHasInputTransitions("State2"));
+            Assert.IsTrue(sm.StateHasInputTransitions("State3"));
+            Assert.IsFalse(sm.StateHasInputTransitions("State1"));
+        }
+
+        [TestMethod]
+        public void StateHasDefaultTransition()
+        {
+            var sm = new StateMachine<string, string>(builder =>
+            {
+                builder.From("State1")
+                    .Default("State3");
+
+                builder.From("State2");
+
+                builder.From("State3")
+                    .When("Input2", "State2")
+                    .Default("State1");
+            });
+
+            Assert.IsFalse(sm.StateHasDefaultTransition("State2"));
+            Assert.IsTrue(sm.StateHasDefaultTransition("State3"));
+            Assert.IsTrue(sm.StateHasDefaultTransition("State1"));
+        }
     }
 }

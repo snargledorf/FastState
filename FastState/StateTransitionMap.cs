@@ -5,11 +5,11 @@ namespace FastState
 {
     internal class StateTransitionMap<TState, TInput> : IStateTransitionMap<TState, TInput>
     {
-        private readonly IEnumerable<Transition<TState, TInput>> transitions;
+        private readonly IReadOnlyCollection<Transition<TState, TInput>> transitions;
 
         public StateTransitionMap(
             TState state,
-            IEnumerable<Transition<TState, TInput>> transitions,
+            IReadOnlyCollection<Transition<TState, TInput>> transitions,
             TState defaultTransitionState)
         {
             this.transitions = transitions;
