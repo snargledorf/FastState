@@ -1,4 +1,8 @@
-```
+# FastState
+
+![NuGet Version](https://img.shields.io/nuget/v/FastState?link=https%3A%2F%2Fgithub.com%2Fsnargledorf%2FFastState)
+
+```c#
 var sm = new StateMachine<string, string>(builder =>
 {
     builder.From("State1")
